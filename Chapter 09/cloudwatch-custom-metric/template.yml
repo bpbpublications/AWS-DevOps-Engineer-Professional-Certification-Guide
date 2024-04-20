@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda to Cloudwatch Demo
+  
+Resources:
+  PutMetricFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: lambda_func.lambdafunc_handler
+      Runtime: python3.9
+      # SAM Managed Policy for inserting custom CloudWatch Metrics
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+
+Outputs:
+  PutMetricFunction:
+    Description: "ARN of PutMetricFunction Lambda"
+    Value: !GetAtt PutMetricFunction.Arn

@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handler.lambda_handler
+      Runtime: python3.8
+      Events:
+        HelloWorldEvent:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+      AutoPublishAlias: live
+      # Grants this function permission to call lambda:InvokeFunction
+      Policies:
+        - Version: "2012-10-17"
+          Statement: 
+          - Effect: "Allow"
+            Action: 
+              - "lambda:InvokeFunction"
+            Resource: '*'
+      DeploymentPreference:
+        Type: MyCanary25Percent5Minute

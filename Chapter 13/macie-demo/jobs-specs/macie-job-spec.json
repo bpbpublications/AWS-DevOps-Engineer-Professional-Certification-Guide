@@ -1,0 +1,36 @@
+{
+    "managedDataIdentifierIds": [
+        "NAME",
+        "ADDRESS",
+        "DATE_OF_BIRTH",
+        "USA_SOCIAL_SECURITY_NUMBER"
+    ],
+    "managedDataIdentifierSelector": "INCLUDE",
+    "description": "Scan S3 bucket to discover data using AWS managed data identifier",
+    "jobType": "ONE_TIME",
+    "s3JobDefinition": {
+        "bucketDefinitions": [
+            {
+                "accountId": "[your-account-id]",
+                "buckets": [
+                    "macie-demo-stack-maciedatabucket-[YOUR_UNIQUE_IDENTIFIER]"
+                ]
+            }
+        ],
+        "scoping": {
+            "includes": {
+                "and": [
+                    {
+                        "simpleScopeTerm": {
+                            "comparator": "EQ",
+                            "key": "OBJECT_EXTENSION",
+                            "values": [
+                                "csv"
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

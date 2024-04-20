@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  ClwLogGroupName:
+    Type: String
+    Default: clw-log-group
+    Description: Name of log group for test events
+  ClwLogStreamName:
+    Type: String
+    Default: clw-log-stream
+    Description: Name of log stream for test events
+  S3BucketName:
+    Type: String
+    Default: sam-deploy-s3
+    Description: Name of bucket where lambda function resides
+  SNSTopicArn:
+    Type: String
+    Default: arn:aws:sns:us-east-1:958651443844:my-sns-topic
+    Description: ARN of SNS Topic
+Resources:
+  ClwLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref ClwLogGroupName
+  ClwLogStream: 
+    Type: AWS::Logs::LogStream
+    Properties: 
+      LogGroupName: !Ref ClwLogGroup
+      LogStreamName: !Ref ClwLogStreamName
+  ClwSubscriptionFilter:
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      DestinationArn: !GetAtt LambdaFunction.Arn
+      FilterPattern: ?ERROR ?CRITICAL
+      LogGroupName: !Ref ClwLogGroup
+  ClwSubscriptionFilterPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction    
+      FunctionName: !Ref LambdaFunction
+      Principal: !Sub "logs.${AWS::Region}.amazonaws.com"
+      SourceArn: !GetAtt ClwLogGroup.Arn
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: lambda_func.lambdafunc_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref S3BucketName
+        S3Key: lambda_func.zip
+      Runtime: python3.9
+      Environment:
+        Variables:
+          MY_SNS_TOPIC_ARN: !Ref SNSTopicArn
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SNSPublishPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource:
+                  - !Ref SNSTopicArn
+Outputs:
+  LambdaFunction:
+    Description: "ARN of Lambda Function"
+    Value: !GetAtt LambdaFunction.Arn
+  ClwLogGroup:
+    Description: "CloudWatch log group ARN"
+    Value: !GetAtt ClwLogGroup.Arn

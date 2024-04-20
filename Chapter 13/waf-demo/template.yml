@@ -1,0 +1,26 @@
+Resources:
+  MyWebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: Block-US-Web-Requests
+      Scope: CLOUDFRONT
+      DefaultAction:
+        Allow: {}
+      Description: Block all web requests from the US
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: Block-US-WebRequests-Metric
+      Rules:
+        - Name: Block-US-Requests
+          Priority: 0
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: BlockUsWebRequestsMetric
+          Statement:
+            GeoMatchStatement:
+              CountryCodes:
+                - US

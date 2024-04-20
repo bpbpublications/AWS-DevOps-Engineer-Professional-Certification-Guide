@@ -1,0 +1,111 @@
+Description: This cloudformation stack creates infrastructure for Macie Demo
+Parameters:
+  SNSTopicEmailAddress:
+    Description: SNS topic endpoint emailaddress
+    Type: String
+
+Resources:
+  # SNS topic to publish macie notification
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: ""
+      TopicName: "macie-to-eventbridge"
+  SNSSubscriptionEmailAddress:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      TopicArn: !Ref SNSTopic
+      Endpoint: !Ref SNSTopicEmailAddress
+      Protocol: "email"
+      Region: !Ref AWS::Region
+  # Define the event rule to filter for events
+  MacieEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "EventBridge Event Rule"
+      EventPattern:
+        source:
+          - "aws.macie"
+      Targets:
+        - Arn: !Ref SNSTopic
+          Id: "SNStopic"
+
+  # Grant permission to EventBridge to invoke SNS
+  MacieEventBridgeToSnsPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sns:Publish
+          Resource: !Ref SNSTopic
+      Topics:
+        - !Ref SNSTopic
+# Create S3 bucket to hold personal data
+  MacieDataBucket:
+    #DependsOn: PersonalDataKmsKey
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: aws:kms
+            KMSMasterKeyID:  !GetAtt PersonalDataKmsKey.Arn
+
+  # Kms key alias to encrypt personal information
+  PersonalDataKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: 
+        Fn::Join:
+        - ''
+        - - 'alias/'
+          - Ref: AWS::StackName
+          - '-personal-bucket-encryption-key'
+      TargetKeyId:
+        Ref: PersonalDataKmsKey
+
+  # Kms key to encrypt personal information
+  PersonalDataKmsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: "Kms key for PersonalData s3 bucket"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id: kms-key-for-personaldata-bucket
+        Statement:
+          - Sid: Grant permissions to IAM user
+            Effect: Allow
+            Principal:
+              AWS: 
+                Fn::Join:
+                - ''
+                - - 'arn:aws:iam::'
+                  - Ref: AWS::AccountId
+                  - :root            
+            Action: kms:*
+            Resource: '*'
+          - Sid: Gant permission to Macie Service Role to use this KMS key
+            Effect: Allow
+            Principal:
+              AWS: 
+                Fn::Join:
+                - ''
+                - - 'arn:aws:iam::'
+                  - Ref: AWS::AccountId
+                  - :role/aws-service-role/macie.amazonaws.com/AWSServiceRoleForAmazonMacie
+            Action:
+              - kms:Decrypt
+            Resource: '*'
+
+Outputs:
+  MacieDataBucket:
+    Description: Macie Data bucket name
+    Value: !Ref MacieDataBucket
+  SNSTopicArn:
+    Description: Arn of SNS Topic where findings will be published
+    Value: !Ref SNSTopic
+

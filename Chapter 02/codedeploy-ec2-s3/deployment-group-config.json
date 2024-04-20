@@ -1,0 +1,24 @@
+{
+    "applicationName": "simple-website-app",
+    "deploymentConfigName": "CodeDeployDefault.OneAtATime",
+    "deploymentGroupName": "simple-website-app-depgp",
+    "ec2TagFilters": [
+        {
+            "Key": "Name",
+            "Value": "MyCodeDeployTest",
+            "Type": "KEY_AND_VALUE"
+        }
+    ],
+    "serviceRoleArn": "arn:aws:iam::[AWS_ACCOUNT_ID]:role/MyCodeDeployServiceRole",
+    "triggerConfigurations": [
+        {
+            "triggerName": "codedeploy-deployment-status",
+            "triggerTargetArn": "arn:aws:sns:us-east-1:[AWS_ACCOUNT_ID]:my-sns-topic",
+            "triggerEvents": [
+                "DeploymentStart",
+                "DeploymentSuccess",
+                "DeploymentFailure"
+            ]
+        }
+    ]
+}

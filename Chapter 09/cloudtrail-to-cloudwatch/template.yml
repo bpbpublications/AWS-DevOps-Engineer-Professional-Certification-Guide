@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: CloudTrail Integration with CloudWatch
+
+Parameters:
+  CloudTrailName:
+    Type: String
+  CloudTrailLogsBucketName:
+    Type: String
+  Email:
+    Type: String
+    Description: Email address to notify when an API activity triggers an alarm
+Resources:
+  TrailLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 14
+  MyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: !GetAtt TrailLogGroup.Arn
+  CloudTrail:
+    Type: AWS::CloudTrail::Trail
+    Properties:
+      TrailName: !Ref CloudTrailName
+      IsLogging: true
+      IsMultiRegionTrail: true
+      IncludeGlobalServiceEvents: true
+      EnableLogFileValidation: true
+      S3BucketName: !Ref CloudTrailLogsBucketName
+      CloudWatchLogsLogGroupArn: !GetAtt TrailLogGroup.Arn
+      CloudWatchLogsRoleArn: !GetAtt MyRole.Arn
+    DependsOn: CloudTrailBucketPolicy
+
+  # Allow CloudTrail to use an S3 bucket for storing trails
+  CloudTrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MyBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowHTTPSOnlyAccessToS3
+            Action: s3:*
+            Effect: Deny
+            Principal: "*"
+            Resource:
+              - !Sub "arn:aws:s3:::${CloudTrailLogsBucketName}/*"
+              - !Sub "arn:aws:s3:::${CloudTrailLogsBucketName}"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+          - Sid: GrantPermissionToTrailBucket
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt MyBucket.Arn
+          - Sid: GrantPermissionToCloudTrailForWritingToBucket
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${CloudTrailLogsBucketName}/AWSLogs/${AWS::AccountId}/*'
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: "bucket-owner-full-control"
+    
+  ConsoleSignInFailuresMetricFilter:
+    Type: 'AWS::Logs::MetricFilter'
+    Properties:
+      LogGroupName: !Ref TrailLogGroup
+      FilterPattern: >-
+        { ($.eventName = ConsoleLogin) && ($.errorMessage = "Failed
+        authentication") }
+      MetricTransformations:
+        - MetricNamespace: CloudTrailMetrics
+          MetricName: ConsoleSignInFailureCount
+          MetricValue: '1'
+  ConsoleSignInFailuresAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmName: CloudTrailConsoleSignInFailures
+      AlarmDescription: >-
+        Alarms when an unauthenticated API call is made to sign into the
+        console.
+      AlarmActions:
+        - !Ref AlarmNotificationSNSTopic
+      MetricName: ConsoleSignInFailureCount
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: '1'
+      Period: '60'
+      Statistic: Sum
+      Threshold: '1'
+  AlarmNotificationSNSTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      Subscription:
+        - Endpoint: !Ref Email
+          Protocol: email
+  # Bucket in S3
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref CloudTrailLogsBucketName

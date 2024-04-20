@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Sample template for an HTTP API that CRUD (creates, updates, and deletes product) in DynamoDB
+  
+Globals:
+  Function:
+    Timeout: 15
+
+Resources:
+  DBHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dynamodb-handler/
+      Handler: app.handler
+      Runtime: nodejs14.x
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProductTable
+      Events:
+        GetAllProducts:
+          Type: HttpApi
+          Properties:
+            Path: /product
+            Method: GET
+        GetAProduct:
+          Type: HttpApi
+          Properties:
+            Path: /product/{id}
+            Method: GET
+        DeleteAProduct:
+          Type: HttpApi
+          Properties:
+            Path: /product/{id}
+            Method: DELETE
+        CreateOrUpdateProduct:
+          Type: HttpApi
+          Properties:
+            Path: /product
+            Method: PUT
+
+  ProductTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      TableName: http-crud-demo-product
+
+Outputs:
+  ApiEndpoint:
+    Description: "The invoke URL for our HTTP API"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/product"
+  Function:
+    Description: "DynamoDB handler function ARN"
+    Value: !GetAtt DBHandlerFunction.Arn
+

@@ -1,0 +1,11 @@
+{
+	"deploymentConfigName": "MyCanary25Percent5Minute",
+	"trafficRoutingConfig": {
+		"type": "TimeBasedCanary",
+		"timeBasedCanary": {
+			"canaryPercentage": 25,
+			"canaryInterval": 5
+		}
+	},
+	"computePlatform": "Lambda"
+}

@@ -1,0 +1,12 @@
+{
+    "name": "MyTestRecipe",
+    "description": "This example image recipe creates a Linux image.",
+    "semanticVersion": "1.0.0",
+    "components":
+    [
+        {
+            "componentArn": "arn:aws:imagebuilder:us-east-1:111111111111:component/installapache/1.0.0"
+        }
+    ],
+    "parentImage": "ami-05f408238af346b4f"
+}

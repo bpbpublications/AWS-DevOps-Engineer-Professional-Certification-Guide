@@ -1,0 +1,13 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:CreateChangeSet"
+            ],
+            "Resource": "arn:aws:cloudformation:us-east-1:aws:transform/Serverless-2016-10-31"
+        }
+    ]
+}
+

@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion:  2010-09-09
+Description: 'This template creates an S3 Bucket'
+Resources:
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub stackset-demo-bucket-${AWS::AccountId}-${AWS::Region}
+

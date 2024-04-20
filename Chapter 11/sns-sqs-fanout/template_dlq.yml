@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: E-commerce Order Processing - SNS to SQS Fanout
+
+Resources:
+  # Define the SQS queue for inventory management
+  InventoryManagementQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn:
+          !GetAtt InventoryDLQ.Arn
+        maxReceiveCount: 5  # After this count, the message moves to DLQ
+
+   # Define the SQS queue for shipping management with its associated DLQ
+  ShippingManagementQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn:
+          !GetAtt ShippingDLQ.Arn
+        maxReceiveCount: 5  # Adjust as required
+
+  # Define the SQS queue for shipping management
+  ShippingManagementQueue:
+    Type: AWS::SQS::Queue
+  
+  # Define the DLQ for inventory management
+  InventoryDLQ:
+    Type: AWS::SQS::Queue
+
+  # Define the DLQ for shipping management
+  ShippingDLQ:
+    Type: AWS::SQS::Queue
+
+  # Define the SNS topic for order processing
+  OrderProcessingTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      # Subscribes both SQS queues to the SNS topic
+      Subscription:
+        - Protocol: sqs
+          Endpoint: !GetAtt InventoryManagementQueue.Arn
+        - Protocol: sqs
+          Endpoint: !GetAtt ShippingManagementQueue.Arn
+
+  # Policy allows SNS to publish to both SQS queues
+  SnsToSqsPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "Allow SNS publish to SQS"
+            Effect: Allow
+            Principal: 
+              Service: "sns.amazonaws.com"
+            Resource: 
+              - !GetAtt InventoryManagementQueue.Arn
+              - !GetAtt ShippingManagementQueue.Arn
+            Action: SQS:SendMessage
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref OrderProcessingTopic
+      Queues:
+        - Ref: InventoryManagementQueue
+        - Ref: ShippingManagementQueue
+
+Outputs:
+  InventoryManagementQueueName:
+    Description: Inventory Management SQS queue name
+    Value: !GetAtt InventoryManagementQueue.QueueName
+  InventoryManagementQueueArn:
+    Description: Inventory Management SQS queue ARN
+    Value: !GetAtt InventoryManagementQueue.Arn
+  InventoryManagementQueueURL:
+    Description: Inventory Management SQS queue URL
+    Value: !Ref InventoryManagementQueue    
+  ShippingManagementQueueName:
+    Description: Shipping Management SQS queue name
+    Value: !GetAtt ShippingManagementQueue.QueueName
+  ShippingManagementQueueArn:
+    Description: Shipping Management SQS queue ARN
+    Value: !GetAtt ShippingManagementQueue.Arn
+  ShippingManagementQueueURL:
+    Description: Shipping Management SQS queue URL
+    Value: !Ref ShippingManagementQueue
+  OrderProcessingTopicName:
+    Description: Order Processing SNS topic name
+    Value: !GetAtt OrderProcessingTopic.TopicName
+  OrderProcessingTopicArn:
+    Description: Order Processing SNS topic ARN
+    Value: !Ref OrderProcessingTopic
+

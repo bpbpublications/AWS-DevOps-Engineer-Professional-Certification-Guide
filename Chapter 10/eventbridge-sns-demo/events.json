@@ -1,0 +1,8 @@
+{
+  "source": ["aws.inspector"],
+  "detail-type": ["Inspector Finding"],
+  "detail": {
+    "severity": ["HIGH", "CRITICAL"],
+    "status": ["ACTIVE"]
+  }
+}               

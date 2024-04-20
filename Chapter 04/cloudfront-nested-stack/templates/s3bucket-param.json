@@ -1,0 +1,5 @@
+{
+  "Parameters" : {
+    "WebsiteBucketName" : "cfn-static-website-YOUR_UNIQUE_IDENTIFIER"
+  }
+}

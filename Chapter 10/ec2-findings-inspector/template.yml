@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  CloudFormaiton template to create resource for Inspector Assessment Template
+Parameters:
+  RulePackageArn:
+    Description: Rule Package ARN for Common Vulnerabilities and Exposures in us-east-1 region
+    Type: String
+    Default: 'arn:aws:inspector:us-east-1:316112463485:rulespackage/0-gEjTy7T7'
+Resources:
+  EC2ResourceGroup:
+    Type: AWS::Inspector::ResourceGroup
+    Properties:
+      ResourceGroupTags:
+        - Key: env
+          Value: staging
+  EC2AssessmentTarget:
+    Type: AWS::Inspector::AssessmentTarget
+    Properties:
+      AssessmentTargetName: ec2_assessment_target
+      ResourceGroupArn: !Ref EC2ResourceGroup
+  EC2AssessmentTemplate:  
+    Type: AWS::Inspector::AssessmentTemplate
+    Properties:
+      AssessmentTargetArn: !Ref EC2AssessmentTarget
+      DurationInSeconds: 300
+      AssessmentTemplateName: ec2_assessment_template
+      RulesPackageArns:
+        - !Ref RulePackageArn
+Outputs:
+  EC2AssessmentTemplateArn:
+    Description: ARN of Assessment Tempalte
+    Value: !Ref EC2AssessmentTemplate

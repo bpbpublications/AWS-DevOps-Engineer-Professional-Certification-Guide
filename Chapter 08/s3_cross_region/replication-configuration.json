@@ -1,0 +1,19 @@
+{
+    "Role":"arn:aws:iam::[AWS_ACCOUNT_ID]:role/S3ReplicationRole",
+    "Rules":[
+        {
+            "ID":"ReplicateAll",
+            "Status":"Enabled",
+            "Priority":1,
+            "DeleteMarkerReplication": { "Status": "Enabled" },
+            "Filter": {
+                "Prefix": ""
+            },
+            "Destination": {
+                "Bucket": "arn:aws:s3:::my-destination-bucket-YOUR_UNIQUE_IDENTIFIER",
+                "StorageClass": "STANDARD"
+            }
+        }
+    ]
+}
+

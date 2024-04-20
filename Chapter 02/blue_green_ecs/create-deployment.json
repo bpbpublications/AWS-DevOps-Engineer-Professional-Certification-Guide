@@ -1,0 +1,11 @@
+{
+    "applicationName": "bluegreen-ecs-deploy-app",
+    "deploymentGroupName": "bluegreen-deployment-group",
+    "revision": {
+        "revisionType": "S3",
+        "s3Location": {
+            "bucket": "bluegreen-codedeploy-to-ecs-bucket",
+            "key": "appspec.yaml",
+            "bundleType": "YAML"
+        }
+    }

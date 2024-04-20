@@ -1,0 +1,9 @@
+[
+  {
+    "Source": "com.xyzcorp.snsdemo",
+    "Detail": "{ \"key1\": \"value1\"}",
+    "Resources": [
+    ],
+    "DetailType": "my-detail-type"
+  }
+]

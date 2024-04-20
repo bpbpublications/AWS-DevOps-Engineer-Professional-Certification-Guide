@@ -1,0 +1,168 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  CloudWatchLogGroupName:
+    Type: String
+    Default: cloudwatch-log-group
+    Description: Name of CloudWatch log group for test events
+  CloudWatchLogStreamName:
+    Type: String
+    Default: cloudwatch-log-stream
+    Description: Name of CloudWatch log stream for test events
+  DeliveryBucketName:
+    Type: String
+    Description: Name of the destination bucket
+  DataDogEndPointUrlName:
+    Type: String
+    Description: HTTP Endpoint URL of third-party Service Provider
+    Default: https://aws-kinesis-http-intake.logs.datadoghq.com/v1/input
+  DataDogApiKey:
+    Description: DataDog Application AccessKey
+    Type: String
+Resources:
+  CloudWatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroupName
+  CloudWatchLogStream: 
+    Type: AWS::Logs::LogStream
+    Properties: 
+      LogGroupName: !Ref CloudWatchLogGroup
+      LogStreamName: !Ref CloudWatchLogStreamName
+  CloudWatchSubscriptionFilter:
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      DestinationArn: !GetAtt DeliveryStream.Arn
+      FilterPattern: " "
+      RoleArn: !GetAtt CloudWatchIAMRole.Arn
+      LogGroupName: !Ref CloudWatchLogGroup
+  DeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: "clw-kdd-to-kf-to-dd"
+      DeliveryStreamType: DirectPut
+      HttpEndpointDestinationConfiguration:
+        BufferingHints:
+            SizeInMBs: 1
+            IntervalInSeconds: 60
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: "/aws/kinesisfirehose/clouwatch-stream-to-firehose-to-datadog"
+          LogStreamName: "S3Delivery"
+        EndpointConfiguration:
+          AccessKey: !Ref DataDogApiKey
+          Name: "Datadog Logs" 
+          Url: !Ref DataDogEndPointUrlName
+        RoleARN: !GetAtt DeliveryRole.Arn
+        S3Configuration:
+          BufferingHints:
+            SizeInMBs: 5
+            IntervalInSeconds: 300
+          RoleARN: !GetAtt DeliveryRole.Arn
+          BucketARN: !GetAtt DeliveryBucket.Arn
+          Prefix: "source-raw-logs"
+        S3BackupMode: "AllData"
+  DeliveryBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AccessControl: Private
+      BucketName: !Ref DeliveryBucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  DeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Ref 'AWS::AccountId'
+      Path: "/"
+      Policies:
+        - PolicyName: firehose_delivery_policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:AbortMultipartUpload'
+                  - 's3:GetBucketLocation'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:PutObject'
+                Resource:
+                  - !Join 
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref DeliveryBucket
+                  - !Join 
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref DeliveryBucket
+                      - '/*' 
+  
+  CloudWatchIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - logs.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: CloudWatchToFirehose
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - firehose:PutRecord
+            - firehose:PutRecordBatch
+            Resource:
+              Fn::GetAtt:
+              - DeliveryStream
+              - Arn
+Outputs:
+  Bucket:
+    Description: Name of the S3 bucket
+    Value:
+      Ref: DeliveryBucketName
+  LogGroup:
+    Description: Name of the CloudWatch Logs Group
+    Value:
+      Ref: CloudWatchLogGroupName
+  LogStream:
+    Description: Name of the CloudWatch log stream
+    Value:
+      Ref: CloudWatchLogStreamName
+  DeliveryStream:
+    Description: Name of the Kinesis Firehose Delivery Stream
+    Value:
+      Ref: DeliveryStream
+  CloudWatchRole:
+    Description: ARN of the IAM Role for CloudWatch Logs Subscription Filter
+    Value:
+      Fn::GetAtt:
+      - CloudWatchIAMRole
+      - Arn
+  FirehoseRole:
+    Description: ARN of the IAM Role for Firehose delivery stream
+    Value:
+      Fn::GetAtt:
+      - DeliveryRole
+      - Arn

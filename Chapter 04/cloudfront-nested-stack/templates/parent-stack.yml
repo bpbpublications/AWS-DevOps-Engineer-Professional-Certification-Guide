@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This parent stack creates S3 bucket and Cloudfront Distribution
+Parameters:
+  WebsiteBucketName:
+    Description: website bucket name
+    Type: String
+Resources:
+  S3BucketStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cfn-deploy-s3-YOUR_UNIQUE_IDENTIFIER.s3.amazonaws.com/s3bucket-nested-stack.yml
+      Parameters:
+        bucketName: !Ref WebsiteBucketName
+  CloudFrontStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cfn-deploy-s3-YOUR_UNIQUE_IDENTIFIER.s3.amazonaws.com/cloudfront-nested-stack.yml
+      Parameters:
+        s3BucketResource: !GetAtt S3BucketStack.Outputs.BucketName
+        s3BucketResourceArn: !GetAtt S3BucketStack.Outputs.BucketResourceArn
+        s3BucketDomainName:  !GetAtt S3BucketStack.Outputs.BucketDomainName
+Outputs:
+  CloudFrontDomainName:
+    Description: Website Cloudfront Domain name
+    Value: !GetAtt CloudFrontStack.Outputs.CloudFrontDistribution

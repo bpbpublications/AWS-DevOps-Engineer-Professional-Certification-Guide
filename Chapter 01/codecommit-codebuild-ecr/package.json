@@ -1,0 +1,14 @@
+{
+"name": "my-nodejs-webapp",
+"version": "1.0.0",
+"description": "My Node.js Application on Docker",
+"author": "abc.def@example.com>",
+"main": "server.js",
+"scripts": {
+"start": "node server.js"
+},
+"dependencies": {
+"express": "^4.16.1"
+}
+}
+

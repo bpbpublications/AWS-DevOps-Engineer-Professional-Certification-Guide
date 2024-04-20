@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation Stack for Inspector Vulnerability Scan
+Mappings:
+  RulePackageArn:
+    us-east-1:
+      CVE: 'arn:aws:inspector:us-east-1:316112463485:rulespackage/0-gEjTy7T7'
+      CIS: 'arn:aws:inspector:us-east-1:316112463485:rulespackage/0-rExsr2X8'
+      NR: 'arn:aws:inspector:us-east-1:316112463485:rulespackage/0-PmNV0Tcd'
+      SBP: 'arn:aws:inspector:us-east-1:316112463485:rulespackage/0-R01qwB5Q'
+Parameters:
+  EC2Tagkey:
+    Description: This tag key is associated with the resource group. If tag (key:value) is not specified, all the EC2 instances in the AWS account are included in the inspector assessment target
+    Type: String
+  EC2Tagvalue:
+    Description: The tag value is associated with the resource group. If tag (key:value) is not specified, all EC2 instances in the  AWS account are included in the inspector assessment target.
+    Type: String
+  Duration:
+    Description: The duration of the Amazon Inspector assessment run in seconds.
+    Type: Number
+    Default: 3600
+  EmailAddress:
+    Description: Inspector Events are sent to this Email address.
+    Type: String
+
+Conditions: 
+  is_tag_key_present: !Not [!Equals [ !Ref EC2Tagkey, "" ]]
+
+Resources: 
+  EventAssumeIAMRole:
+    Type: AWS::IAM::Role
+    DependsOn: InspectorAssessmentTemplate
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: Inspector-Start-AssessmentRun
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - inspector:StartAssessmentRun
+                Resource: '*'
+
+  ResourceGroup:
+    Type: AWS::Inspector::ResourceGroup
+    Condition: is_tag_key_present
+    Properties: 
+      ResourceGroupTags: 
+        - Key: !Ref EC2Tagkey
+          Value: !Ref EC2Tagvalue
+  InspectorAssessmentTarget:
+    Type: AWS::Inspector::AssessmentTarget
+    Properties: 
+      AssessmentTargetName: !Sub ${AWS::AccountId}-InspectorAssessmentTarget
+      ResourceGroupArn: !If [is_tag_key_present, !GetAtt ResourceGroup.Arn, !Ref "AWS::NoValue"]
+  InspectorAssessmentTemplate:
+    Type: AWS::Inspector::AssessmentTemplate
+    Properties: 
+      AssessmentTargetArn: !GetAtt InspectorAssessmentTarget.Arn
+      AssessmentTemplateName: !Sub ${AWS::AccountId}-InspectorAssessmentTemplate
+      DurationInSeconds: !Ref Duration
+      RulesPackageArns: 
+        - !FindInMap
+          - RulePackageArn
+          - !Ref 'AWS::Region'
+          - CVE
+        - !FindInMap
+          - RulePackageArn
+          - !Ref 'AWS::Region'
+          - CIS
+        - !FindInMap
+          - RulePackageArn
+          - !Ref 'AWS::Region'
+          - NR
+        - !FindInMap
+          - RulePackageArn
+          - !Ref 'AWS::Region'
+          - SBP
+
+  InspectorAssessmentEventRule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      Name: Scheduled_Inspector_Assessment
+      Description: 'The scheduled trigger for AWS Inspector Assessment'
+      State: ENABLED
+      Targets:
+        - Arn: !Ref InspectorAssessmentTemplate
+          Id: AWSInspectorAssessment
+          RoleArn: !GetAtt EventAssumeIAMRole.Arn
+      ScheduleExpression: "rate(1 day)"
+  InspectorScanEventsSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "InspectorScanEvents-${AWS::AccountId}"
+  InspectorScanEventsSnsTopicPolicy:  
+    Type: AWS::SNS::TopicPolicy
+    Properties: 
+      PolicyDocument:
+         Version: "2012-10-17" 
+         Statement:            
+              Effect: Allow    
+              Principal:
+                AWS:
+                  - arn:aws:iam::316112463485:root
+              Action: "sns:Publish"
+              Resource: "arn:aws:sns:*" 
+      Topics: 
+        - !Ref InspectorScanEventsSNSTopic
+  InspectorSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: !Ref InspectorScanEventsSNSTopic
+      Endpoint: !Ref EmailAddress 
+      Protocol: email
+
+Outputs:
+  AssessmentTemplateArn:
+    Value: !Ref InspectorAssessmentTemplate
+  SNSTopicARN:
+    Value: !Ref InspectorScanEventsSNSTopic

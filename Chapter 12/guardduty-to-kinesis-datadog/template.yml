@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  EmailAddress:
+    Type: String
+    Description: Your email address
+  DeliveryBucketName:
+    Type: String
+    Description: Name of the destination S3 bucket
+  MyDataDogEndPointUrlName:
+    Type: String
+    Description: HTTP Endpoint URL of third-party Service Provider
+    Default: https://aws-kinesis-http-intake.logs.datadoghq.com/v1/input
+  MyDataDogApiKey:
+    Description: DataDog Application AccessKey
+    Type: String
+Resources:
+  MySnsTopic:
+    Type: "AWS::SNS::Topic"
+  MySnsSubscription:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Endpoint: !Ref EmailAddress
+      Protocol: "email"
+      TopicArn: !Ref MySnsTopic
+  
+  # Grant permission to EventBridge to invoke SNS
+  MyEventBridgeToSnsPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sns:Publish
+          Resource: !Ref MySnsTopic
+      Topics:
+        - !Ref MySnsTopic
+  KinesisFirehoseDeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: "eventbridge-to-kinesis-firehose-to-datadog"
+      DeliveryStreamType: DirectPut
+      HttpEndpointDestinationConfiguration:
+        BufferingHints:
+            SizeInMBs: 1
+            IntervalInSeconds: 60
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: "/aws/kinesisfirehose/eventbridge-to-kinesis-firehose-to-datadog"
+          LogStreamName: "S3Delivery"
+        EndpointConfiguration:
+          AccessKey: !Ref MyDataDogApiKey
+          Name: "Datadog Logs" 
+          Url: !Ref MyDataDogEndPointUrlName
+        RoleARN: !GetAtt KinesisFirehoseDeliveryRole.Arn
+        S3Configuration:
+          BufferingHints:
+            SizeInMBs: 5
+            IntervalInSeconds: 300
+          RoleARN: !GetAtt KinesisFirehoseDeliveryRole.Arn
+          BucketARN: !GetAtt S3DeliveryBucket.Arn
+          Prefix: "source-raw-logs"
+        S3BackupMode: "AllData"
+  S3DeliveryBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AccessControl: Private
+      BucketName: !Ref DeliveryBucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  KinesisFirehoseDeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Ref 'AWS::AccountId'
+      Path: "/"
+      Policies:
+        - PolicyName: kinesis_firehose_delivery_policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:AbortMultipartUpload'
+                  - 's3:GetBucketLocation'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:PutObject'
+                Resource:
+                  - !Join 
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref S3DeliveryBucket
+                  - !Join 
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref S3DeliveryBucket
+                      - '/*' 
+  EventBridgeRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: 'sts:AssumeRole'
+  EventBridgePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: AWS_Events_Invoke_Kinesis_Firehose
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'firehose:PutRecord'
+              - 'firehose:PutRecordBatch'
+            Resource:
+              - !GetAtt KinesisFirehoseDeliveryStream.Arn
+      Roles:
+        - !Ref EventBridgeRole
+  GuardDutyEventBridgeRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Guard Duty Visualization Event Rule"
+      EventPattern:
+        source:
+          - "aws.guardduty"
+        detail-type:
+          - "GuardDuty Finding"
+      Targets:
+        - Arn: !GetAtt KinesisFirehoseDeliveryStream.Arn
+          Id: "guard-duty-kinesis-firehose"
+          RoleArn: !GetAtt EventBridgeRole.Arn
+        - Arn: !Ref MySnsTopic
+          Id: "guard-duty-sns"
+Outputs:
+  Bucket:
+    Description: Name of the S3 bucket
+    Value:
+      Ref: DeliveryBucketName
+  KinesisFirehoseDeliveryStream:
+    Description: Name of the Kinesis Firehose Delivery Stream
+    Value:
+      Ref: KinesisFirehoseDeliveryStream
+  FirehoseRole:
+    Description: ARN of the IAM Role for Firehose delivery stream
+    Value:
+      Fn::GetAtt:
+      - KinesisFirehoseDeliveryRole
+      - Arn

@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Tag S3 Metadata automation
+
+Parameters:
+  S3BucketNameParam:
+    Type: String
+  
+Resources:
+  S3BucketName:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketNameParam
+  
+  CustomMetadataLambdaFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: src/
+      Handler: lambdafunc.lambdahandler
+      Runtime: python3.9
+      MemorySize: 128
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref S3BucketNameParam
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref S3BucketName
+            Events: s3:ObjectCreated:Put
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.txt'     
+Outputs:
+  S3BucketName:
+    Value: !Ref S3BucketName
+    Description: S3 Bucket to upload object
+  FunctionArn:
+    Value: !Ref CustomMetadataLambdaFunction
+    Description: Custom Metada Lambda Function ARN

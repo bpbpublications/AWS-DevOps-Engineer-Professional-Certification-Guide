@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This template cerates S3 bucket to host website contents
+Parameters:
+  bucketName:
+    Description: website bucket name
+    Type: String
+Resources:
+  s3BucketResource:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref bucketName
+      AccessControl: Private
+Outputs:
+  BucketName:
+    Description: "Name of S3 bucket to host static website contents"
+    Value:
+      Ref: s3BucketResource
+  BucketDomainName:
+    Description: Website domain name
+    Value: !GetAtt s3BucketResource.DomainName
+  BucketResourceArn:
+    Description: ARN of Website bucket
+    Value: !GetAtt s3BucketResource.Arn

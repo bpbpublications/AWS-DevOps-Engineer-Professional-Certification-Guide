@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Send notification from S3 to SNS when an object is permantenly deleted
+
+Parameters:
+  StagingBucketName:
+    Type: String
+    
+Resources:
+  StagingBucket:
+    Type: AWS::S3::Bucket
+    DependsOn:
+      - MySNSTopicPolicy
+    Properties:
+      BucketName: !Ref StagingBucketName
+      NotificationConfiguration:
+        TopicConfigurations:
+          - Event: s3:ObjectRemoved:Delete
+            Topic: !Ref MySNSTopic
+  
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+            
+  MySNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 's3.amazonaws.com'
+            Action: sns:Publish
+            Resource: !Ref MySNSTopic
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Join ["",['arn:aws:s3:::',!Ref StagingBucketName]]
+              StringEquals:
+                aws:SourceAccount: !Ref 'AWS::AccountId'
+      Topics:
+        - !Ref MySNSTopic

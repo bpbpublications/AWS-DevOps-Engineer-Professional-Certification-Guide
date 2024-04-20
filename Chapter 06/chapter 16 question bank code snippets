@@ -1,0 +1,506 @@
+Chapter 16 Question Bank - 75
+------------------------------------------------------------------------------------------------
+Question 1:
+Options:
+a.	
+1.	version: 0.2
+2.	phases:
+3.	  build:
+4.	    commands:
+5.	      - pip install -r requirements.txt
+6.	      - pytest --cov=./
+7.	  post_build:
+8.	    commands:
+9.	      - bash mybuild_script.sh
+
+b.	
+1.	version: 0.2
+2.	phases:
+3.	  build:
+4.	    commands:
+5.	      - pip install coverage
+6.	      - coverage run -m unittest discover
+7.	  post_build:
+8.	    commands:
+9.	      - echo 'Connect to CodeCov'
+10.	      - bash mybuild_script.sh
+
+c.	
+1.	version: 0.2
+2.	phases:
+3.	  build:
+4.	    commands:
+5.	      - pip install pytest pytest-cov
+6.	      - pytest
+7.	  post_build:
+8.	    commands:
+9.	      - ./codecov.sh -t $CODECOV_TOKEN
+
+d.	
+1.	version: 0.2
+2.	phases:
+3.	  build:
+4.	    commands:
+5.	      - pip install unittest
+6.	      - python -m unittest
+7.	  post_build:
+8.	    commands:
+9.	      - curl -s https://codecov.io/bash | bash
+
+------------------------------------------------------------------------------------------------
+Question 4:
+Options:
+a.	
+1.	{
+2.	    "Effect": "Allow",
+3.	    "Action": "codecommit:*",
+4.	    "Resource": "*"
+5.	}
+
+b.	
+1.	{
+2.	    "Version": "2012-10-17",
+3.	    "Statement": [
+4.	        {
+5.	            "Effect": "Deny",
+6.	            "Action": [
+7.	                "codecommit:GitPush",
+8.	                "codecommit:DeleteBranch",
+9.	                "codecommit:PutFile",
+10.	                "codecommit:MergePullRequestByFastForward"
+11.	            ],
+12.	            "Resource": "arn:aws:codecommit:[aws-region]:[aws-account-id]:my-webapp-repo",
+13.	            "Condition": {
+14.	                "StringEqualsIfExists": {
+15.	                    "codecommit:References": [
+16.	                        "refs/heads/master"   
+17.	                    ]
+18.	                },
+19.	                "Null": {
+20.	                    "codecommit:References": false
+21.	                }
+22.	            }
+23.	        }
+24.	    ]
+25.	}
+
+c.	
+1.	{
+2.	    "Effect": "Allow",
+3.	    "Action": [
+4.	        "codecommit:GitPull",
+5.	        "codecommit:GetBranch"
+6.	    ],
+7.	    "Resource": "*"
+8.	}
+
+d.	
+1.	{
+2.	    "Effect": "Deny",
+3.	    "Action": "codecommit:*",
+4.	    "Resource": "arn:aws:codecommit:[aws-region]:[aws-account-id]:*"
+5.	}
+
+------------------------------------------------------------------------------------------------
+Question 5:
+1.	(aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin)
+
+1.	docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG . 
+2.	docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+
+Options:
+a.	
+1.	post_build:
+2.	  commands:
+3.	    - echo Uploading to S3...
+4.	    - aws s3 cp docker-image.tar s3://mybucket/docker-image.tar
+
+b.	
+1.	post_build:
+2.	  commands:
+3.	    - echo Starting post-build tests...
+4.	    - docker run $IMAGE_REPO_NAME:$IMAGE_TAG npm test
+
+c.	
+1.	post_build:
+2.	  commands:
+3.	    - echo Pushing the Docker image...
+4.	    - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+
+d.	
+1.	post_build:
+2.	  commands:
+3.	    - echo Saving image as an artifact...
+4.	    - docker save $IMAGE_REPO_NAME:$IMAGE_TAG > image.tar
+
+------------------------------------------------------------------------------------------------
+Question 6:
+Options:
+1.	"npmAuth": "npm login --registry my-repo --scope my-domain"
+
+b.	
+1.	"artifactLogin": "aws codeartifact login --tool npm --repository my-repo --domain my-domain"
+
+c.	
+1.	"setArtifactToken": "aws configure set codeartifact_token my-repo --domain my-domain"
+
+d.	
+1.	"configureRegistry": "npm config set registry https://my-domain.my-repo.codeartifact.aws-region.amazonaws.com/npm/my-repo/"
+
+------------------------------------------------------------------------------------------------
+Question 13:
+|--Website/
+2.	      |-- appspec.yml  
+3.	      |-- scripts/
+4.	      |    |-- install_web_server.sh
+5.	      |    |-- start_web_server.sh
+6.	      |    |-- stop_web_server.sh
+7.	      |-- index.html
+
+Options:
+1.	version: 0.0
+2.	os: linux
+3.	files:
+4.	  - source: /index.html
+5.	    destination: /var/www/html/
+6.	hooks:
+7.	  BeforeInstall:
+8.	    - location: scripts/install_dependencies.sh
+9.	      timeout: 300
+10.	      runas: root
+11.	  ApplicationStop:
+12.	    - location: scripts/shutdown_web_server.sh
+13.	      timeout: 300
+14.	      runas: root
+
+b.	
+1.	version: 0.0
+2.	os: linux
+3.	files:
+4.	  - source: /index.html
+5.	    destination: /var/www/html/
+6.	hooks:
+7.	  BeforeInstall:
+8.	    - location: scripts/install_web_server.sh
+9.	      timeout: 300
+10.	      runas: root
+11.	    - location: scripts/start_web_server.sh
+12.	      timeout: 300
+13.	      runas: root
+14.	  ApplicationStop:
+15.	    - location: scripts/stop_web_server.sh
+16.	      timeout: 300
+17.	      runas: root
+
+c.	
+1.	version: 0.0
+2.	os: linux
+3.	files:
+4.	  - source: /scripts
+5.	    destination: /usr/local/bin
+6.	hooks:
+7.	  AfterInstall:
+8.	    - location: scripts/start_web_server.sh
+9.	      timeout: 300
+10.	      runas: root
+
+d.	
+1.	version: 0.0
+2.	os: linux
+3.	files:
+4.	  - source: /Website
+5.	    destination: /var/www
+6.	hooks:
+7.	  ValidateService:
+8.	    - location: scripts/validate_installation.sh
+9.	      timeout: 300
+10.	      runas: root
+
+------------------------------------------------------------------------------------------------
+Question 16:
+Options:
+a.	
+1.	apiVersion: apps/v1
+2.	kind: Deployment
+3.	metadata:
+4.	  name: myapp-deployment
+5.	spec:
+6.	  replicas: 3
+7.	  strategy:
+8.	    type: Recreate
+
+b.	
+1.	apiVersion: apps/v1
+2.	kind: Deployment
+3.	metadata:
+4.	  name: myapp-deployment
+5.	spec:
+6.	  replicas: 3
+7.	  strategy:
+8.	    type: RollingUpdate
+9.	    rollingUpdate:
+10.	      maxUnavailable: 1
+11.	      maxSurge: 1
+
+c.	
+1.	apiVersion: v1
+2.	kind: Pod
+3.	metadata:
+4.	  name: myapp-pod
+5.	spec:
+6.	  containers:
+7.	  - name: myapp-container
+8.	    image: myapp-image
+
+d.	
+1.	apiVersion: apps/v1
+2.	kind: Deployment
+3.	metadata:
+4.	  name: myapp-deployment
+5.	spec:
+6.	  replicas: 3
+7.	  strategy:
+8.	    type: RollingUpdate
+9.	    rollingUpdate:
+10.	      minReadySeconds: 5
+
+------------------------------------------------------------------------------------------------
+Question 19:
+Options:
+a.	
+1.	Resources:
+2.	  MyFunction:
+3.	    Type: AWS::Serverless::Function
+4.	    Properties:
+5.	      CodeUri: my_function/
+6.	      Handler: app.handler
+7.	      Runtime: python3.9
+8.	      Metadata:
+9.	        BuildMethod: python3.9
+
+b.	
+1.	Resources:
+2.	  HelloWorldFunction:
+3.	    Type: AWS::Serverless::Function
+4.	    Properties:
+5.	      CodeUri: hello_world/
+6.	      Handler: app.lambda_handler
+7.	      Runtime: python3.9
+8.	    Metadata:
+9.	      BuildMethod: makefile
+
+c.	
+1.	Resources:
+2.	  MyFunction:
+3.	    Type: AWS::Serverless::Function
+4.	    Properties:
+5.	      CodeUri: my_function/
+6.	      Handler: app.handler
+7.	      Runtime: python3.9
+
+d.	
+1.	Resources:
+2.	  HelloWorldFunction:
+3.	    Type: AWS::Serverless::Function
+4.	    Properties:
+5.	      CodeUri: hello_world/
+6.	      Handler: app.lambda_handler
+7.	      Runtime: python3.9
+
+------------------------------------------------------------------------------------------------
+Question 20:
+Options:
+a.	
+1.	import aws_cdk.aws_s3 as s3
+2.	
+3.	class MyS3Stack(cdk.Stack):
+4.	    def __init__(self, scope: cdk.App, id: str):
+5.	        super().__init__(scope, id)
+6.	        bucket = s3.Bucket(self, "MyFirstBucket")
+
+b.	
+1.	import aws_cdk as cdk
+2.	import aws_cdk.aws_s3 as s3
+3.	            
+4.	class HelloCdkStack(cdk.Stack):
+5.	    def __init__(self, scope: cdk.App, construct_id: str, **kwargs) -> None:
+6.	        super().__init__(scope, construct_id, **kwargs)
+7.	        bucket = s3.Bucket(self, "MyFirstBucket", versioned=True)
+
+c.	
+1.	import aws_cdk as cdk
+2.	
+3.	class MyBucketStack(cdk.Stack):
+4.	    def __init__(self, scope: cdk.App, id: str):
+5.	        super().__init__(scope, id)
+6.	        bucket = cdk.Bucket(self, "MyFirstBucket", versioned=False)
+
+d.	
+1.	import aws_cdk as cdk
+2.	import aws_cdk.aws_s3 as s3
+3.	            
+4.	class MyS3Stack(cdk.Stack):
+5.	    def __init__(self, scope: cdk.Construct, id: str):
+6.	        super().__init__(scope, id)
+7.	        bucket = s3.S3Bucket(self, "MyFirstBucket")
+
+------------------------------------------------------------------------------------------------
+Question 22:
+Options:
+a.	
+1.	git clone https://github.com/my-app.git my-app && \
+2.	cd my-app && \
+3.	copilot deploy --app demo-app \
+4.	  --name my-api \
+5.	  --type 'Load Balanced Web Service' \
+6.	  --dockerfile './Dockerfile' \
+7.	  --port 80
+
+b.	
+1.	git clone https://github.com/my-app.git my-app && \
+2.	cd my-app && \
+3.	copilot init --app demo-app \
+4.	  --name my-api \
+5.	  --type 'Load Balanced Web Service' \
+6.	  --dockerfile './Dockerfile' \
+7.	  --port 80 \
+8.	  --deploy
+
+c.	
+1.	git clone https://github.com/my-app.git my-app && \
+2.	cd my-app && \
+3.	copilot service deploy --name my-api \
+4.	  --app demo-app \
+5.	  --type 'Load Balanced Web Service' \
+6.	  --dockerfile './Dockerfile' \
+7.	  --port 80
+
+d.	
+1.	git clone https://github.com/my-app.git my-app && \
+2.	cd my-app && \
+3.	copilot ecs deploy --name demo-app \
+4.	  --service my-api \
+5.	  --type 'Load Balanced Web Service' \
+6.	  --dockerfile './Dockerfile' \
+7.	  --port 80
+
+------------------------------------------------------------------------------------------------
+Question 30:
+1.	AWSTemplateFormatVersion: "2010-09-09"
+2.	Mappings: 
+3.	  RegionMap: 
+4.	    us-east-1:
+5.	      HVM64: ami-0ff8a91507f77f867
+6.	    us-west-1:
+7.	      HVM64: ami-0bdb828fd58c52235
+
+Options:
+a.	
+1.	Resources: 
+2.	  WebServerInstance: 
+3.	    Type: "AWS::EC2::Instance"
+4.	    Properties: 
+5.	      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
+6.	      InstanceType: m1.small
+
+b.	
+1.	Resources: 
+2.	  WebServerInstance: 
+3.	    Type: "AWS::EC2::Instance"
+4.	    Properties: 
+5.	      ImageId: !Ref "AWS::Region"
+6.	      InstanceType: m1.small
+
+c.	
+1.	Resources: 
+2.	  WebServerInstance: 
+3.	    Type: "AWS::EC2::Instance"
+4.	    Properties: 
+5.	      ImageId: !FindInMap [RegionMap, "us-west-1", HVM64]
+6.	      InstanceType: m1.small
+
+d.	
+1.	Resources: 
+2.	  WebServerInstance: 
+3.	    Type: "AWS::EC2::Instance"
+4.	    Properties: 
+5.	      ImageId: [RegionMap, "HVM64", !Ref "AWS::Region"]
+6.	      InstanceType: m1.small
+
+------------------------------------------------------------------------------------------------
+Question 43:
+Options:
+a.	
+1.	fields srcIp
+2.	| stats sum(requestCount) as requestCount by srcIp
+3.	| sort requestCount desc
+4.	| limit 100
+
+b.	
+1.	fields httpRequest.clientIp
+2.	| stats count(*) as requestCount by httpRequest.clientIp
+3.	| sort requestCount desc
+4.	| limit 100
+
+c.	
+1.	fields clientIp
+2.	| count httpRequest.clientIp
+3.	| order by count desc
+4.	| top 100 clientIp
+
+d.	
+1.	fields httpRequest.clientIp
+2.	| calculate sum(requests) as totalRequests by httpRequest.clientIp
+3.	| order by totalRequests desc
+4.	| display top 100
+
+------------------------------------------------------------------------------------------------
+Question 55:
+Options:
+a.	
+1.	Resources:
+2.	  MyS3Bucket:
+3.	    Type: 'AWS::S3::Bucket'
+4.	    Properties:
+5.	      BucketName: !Ref MyBucketName
+6.	      NotificationConfiguration:
+7.	        TopicConfigurations:
+8.	          - Event: 's3:ObjectCreated:*'
+9.	            Topic: !GetAtt MyQueue.Arn
+
+b.	
+1.	Resources:
+2.	  MyS3Bucket:
+3.	    Type: 'AWS::S3::Bucket'
+4.	    Properties:
+5.	      BucketName: !Ref MyBucketName
+6.	      NotificationConfiguration:
+7.	        QueueConfigurations:
+8.	          - Event: 's3:ObjectCreated:*'
+9.	            Queue: !GetAtt MyQueue.Arn
+
+c.	
+1.	Resources:
+2.	  MyS3Bucket:
+3.	    Type: 'AWS::S3::Bucket'
+4.	    Properties:
+5.	      BucketName: !Ref MyBucketName
+6.	      NotificationConfiguration:
+7.	        LambdaFunctionConfigurations:
+8.	          - Event: 's3:ObjectCreated:*'
+9.	            Function: !GetAtt MyQueue.Arn
+
+d.	
+1.	Resources:
+2.	  MyS3Bucket:
+3.	    Type: 'AWS::S3::Bucket'
+4.	    DependsOn:
+5.	      - MyQueue
+6.	    Properties:
+7.	      BucketName: !Ref MyBucketName
+8.	      NotificationConfiguration:
+9.	        QueueConfigurations:
+10.	          - Event: 's3:ObjectCreated:*'
+11.	            Queue: !Ref MyQueue
+
+------------------------------------------------------------------------------------------------

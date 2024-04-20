@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description:  Template for EC2 instance. Testing change sets.
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - test
+      - prod
+    Description: The environment where EC2 instance runs
+  KeyPair:
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    Description: Existing EC2 KeyPair that enables SSH access to instance
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    Description: EC2 instance type.
+Resources:
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      KeyName: !Ref KeyPair
+      InstanceType: !Ref InstanceType
+      ImageId: ami-8fcee4e5
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment

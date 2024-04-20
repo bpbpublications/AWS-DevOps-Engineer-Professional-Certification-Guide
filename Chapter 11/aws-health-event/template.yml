@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS EventBridge Rule to AWS SSM Automation
+
+Resources:
+  EventRuleAssumeRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - iam:PassRole
+                Resource:
+                  - !GetAtt SSMAutomationAssumeRole.Arn
+                Effect: Allow
+          PolicyName: PassRolePolicy
+        - PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - ssm:StartAutomationExecution
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}::automation-definition/AWS-RestartEC2Instance:$DEFAULT"
+                Effect: Allow
+          PolicyName: SSMAutomationPolicy
+  SSMAutomationAssumeRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ssm.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - ec2:StartInstances
+                  - ec2:StopInstances
+                  - ec2:DescribeInstanceStatus
+                Resource:
+                  - "*"
+                Effect: Allow
+          PolicyName: SSMAutomationRolePolicy
+  EventBridgeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Trigger AWS-RestartEC2Instance document to restart EC2 Instance"
+      EventPattern:
+        source:
+          - "aws.health"
+        detail-type:  
+          - "AWS Health Event"
+        detail:
+          service:
+            - "running"
+          eventTypeCategory:
+            - "scheduledChange"
+          eventTypeCode:
+            - "AWS_EC2_PERSISTENT_INSTANCE_RETIREMENT_SCHEDULED"
+        
+      Targets:
+        - Arn: !Sub "arn:aws:ssm:${AWS::Region}::automation-definition/AWS-RestartEC2Instance"
+          Id: "RestartRetiredEC2Instance"
+          RoleArn: !GetAtt EventRuleAssumeRole.Arn
+          InputTransformer:
+            InputPathsMap:
+              "Instances": "$.resources"
+            InputTemplate: !Sub |
+              {
+                "InstanceId": ["<Instances>"]
+              }

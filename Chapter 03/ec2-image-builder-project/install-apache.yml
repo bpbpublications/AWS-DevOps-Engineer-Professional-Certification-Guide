@@ -1,0 +1,18 @@
+name: InstallApache
+description: Install and configure Apache web server
+schemaVersion: 1.0
+
+phases:
+  - name: build
+    steps:
+      - name: InstallApache
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              #!/bin/bash
+              sudo yum update -y
+              sudo yum install -y httpd
+              sudo systemctl enable httpd
+              sudo systemctl start httpd
+

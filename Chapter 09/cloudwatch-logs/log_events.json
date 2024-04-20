@@ -1,0 +1,10 @@
+[
+  {
+    "timestamp": 1674608426651,
+    "message": "Sample ERROR message"
+  },
+  {
+    "timestamp": 1674608442694,
+    "message": "sample CRITICAL message"
+  }
+]

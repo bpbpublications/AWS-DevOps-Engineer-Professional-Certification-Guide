@@ -1,0 +1,18 @@
+{
+  "name": "crud-sam-proj",
+  "version": "1.0.0",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.236.0",
+    "@aws-sdk/lib-dynamodb": "^3.236.0",
+    "aws-sdk": "^2.783.0"
+  },
+  "keywords": [],
+  "description": ""
+}

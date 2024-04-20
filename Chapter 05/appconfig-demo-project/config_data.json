@@ -1,0 +1,14 @@
+{
+  "flags": {
+    "flagkey": {
+      "name": "is_virus_scanning"
+    }
+  },
+  "values": {
+    "flagkey": {
+      "enabled": true
+    }
+  },
+  "version": "1"
+}
+

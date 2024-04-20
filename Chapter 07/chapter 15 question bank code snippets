@@ -1,0 +1,266 @@
+Chapter 15 Question Bank - 75
+------------------------------------------------------------------------------------------------
+Question 19: 
+1.	Parameters:
+2.	  environment:
+3.	    Type: String
+4.	    Default: development
+5.	    AllowedValues:
+6.	      - development
+7.	      - production
+8.	      - poc
+
+
+Options:
+a.	
+1.	Condition:
+2.	  isProduction: !Equals [ !Ref environment, production ]
+3.	Resources:
+4.	  ProductionEC2Instance:
+5.	    Type: "AWS::EC2::Instance"
+6.	    Condition: isProduction
+7.	    Properties:
+8.	      # Instance properties here
+
+b.	
+1.	Resources:
+2.	  EC2Instance:
+3.	    Type: "AWS::EC2::Instance"
+4.	    Properties:
+5.	      EnvironmentType: production
+6.	      # Instance properties here
+
+c.	
+1.	Conditions:
+2.	  CreateProdResources: !Equals [ !Ref environment, production ]
+3.	Resources:
+4.	  ProductionEC2Instance:
+5.	    Type: "AWS::EC2::Instance"
+6.	    Condition: CreateProdResources
+7.	    Properties:
+8.	      # Instance properties here
+
+d.	
+1.	Resources:
+2.	  EC2Instance:
+3.	    Type: "AWS::EC2::Instance"
+4.	    Properties:
+5.	      EnvironmentType: production
+6.	      # Instance properties here
+
+----------------------------------------------------------------------------------------
+Question 20:
+1.	Parameters:
+2.	    EnvType:
+3.	        Type: String
+4.	        AllowedValues: [ dev-env, prod-env ]
+5.	...
+6.	Conditions:
+7.	    IsProdEnvironment: !Equals [ !Ref EnvType, 'prod-env' ]
+
+a.	
+1.	Resources:
+2.	  ProdSecurityGroup:
+3.	    Type: AWS::EC2::SecurityGroup
+4.	  InstanceExample:
+5.	    Type: AWS::EC2::Instance
+6.	    Properties:
+7.	      SecurityGroupIds:
+8.	        - !If [ IsProdEnvironment, !Ref 'AWS::NoValue', !Ref ProdSecurityGroup ]
+
+b.	
+1.	Resources:
+2.	  ProdSecurityGroup:
+3.	    Type: AWS::EC2::SecurityGroup
+4.	  InstanceExample:
+5.	    Type: AWS::EC2::Instance
+6.	    Properties:
+7.	      SecurityGroupIds:
+8.	        - !Ref ProdSecurityGroup
+
+c.	
+1.	Resources:
+2.	  ProdSecurityGroup:
+3.	    Type: AWS::EC2::SecurityGroup
+4.	  InstanceExample:
+5.	    Type: AWS::EC2::Instance
+6.	    Properties:
+7.	      SecurityGroupIds:
+8.	        - !If [ IsProdEnvironment, !Ref ProdSecurityGroup, 'AWS::NoValue' ]
+
+d.	
+1.	Resources:
+2.	  ProdSecurityGroup:
+3.	    Type: AWS::EC2::SecurityGroup
+4.	  InstanceExample:
+5.	    Type: AWS::EC2::Instance
+6.	    Properties:
+7.	      SecurityGroupIds:
+8.	        - !If [ IsProdEnvironment, !Ref ProdSecurityGroup, !Ref 'AWS::NoValue' ]
+----------------------------------------------------------------------------------------
+Question 21:
+1.	Outputs:
+2.	  PublicSubnet:
+3.	    Description: The subnet ID to use for public web servers
+4.	    Value:
+5.	      Ref: PublicSubnet
+6.	    Export:
+7.	      Name:
+8.	        Fn::Sub: ${AWS::StackName}-SubnetID
+9.	  WebServerSecurityGroup:
+10.	    Description: The security group ID to use for public web servers
+11.	    Value:
+12.	      Fn::GetAtt:
+13.	      - WebServerSecurityGroup
+14.	      - GroupId
+15.	    Export:
+16.	      Name:
+17.	        Fn::Sub: ${AWS::StackName}-SecurityGroupID
+
+Options:
+a.	
+
+1.	Resources:
+2.	  MyAppServerInstance:
+3.	    Type: AWS::EC2::Instance
+4.	    Properties:
+5.	      SubnetId:
+6.	        Ref: PublicSubnet
+7.	      SecurityGroupIds:
+8.	        - Ref: WebServerSecurityGroup
+
+b.	
+1.	Resources:
+2.	  MyAppServerInstance:
+3.	    Type: AWS::EC2::Instance
+4.	    Properties:
+5.	      NetworkInterfaces:
+6.	        - SubnetId:
+7.	            Fn::ImportValue: !Sub "${DeploymentStackName}-SubnetID"
+8.	          GroupSet:
+9.	            - Fn::ImportValue: !Sub "${DeploymentStackName}-SecurityGroupID"
+
+c. 
+1.	Resources:
+2.	  MyAppServerInstance:
+3.	    Type: AWS::EC2::Instance
+4.	    Properties:
+5.	      SubnetId:
+6.	        Fn::ImportValue: !Sub "${DeploymentStackName}-SubnetID"
+7.	      SecurityGroupIds:
+8.	        - Fn::ImportValue: !Sub "${DeploymentStackName}-SecurityGroupID"
+
+d.	
+1.	Resources:
+2.	  MyAppServerInstance:
+3.	    Type: AWS::EC2::Instance
+4.	    Properties:
+5.	      NetworkInterfaces:
+6.	        - DeviceIndex: "0"
+7.	          SubnetId:
+8.	            Fn::ImportValue: "PublicSubnet"
+9.	          GroupSet:
+10.	            - Fn::ImportValue: "WebServerSecurityGroup"
+
+----------------------------------------------------------------------------------------
+Question 22:
+a.	Use Fn::ImportValue in NestedStackY to import an exported output value from NestedStackX:
+1.	Parameters: 
+2.	  ImportedValue:
+3.	    Type: String
+4.	    Description: Imported value from NestedStackX
+
+c.
+1.	AWSTemplateFormatVersion: 2010-09-09
+2.	Resources:
+3.	  NestedStackX:
+4.	    Type: 'AWS::CloudFormation::Stack'
+5.	    Properties:
+6.	      TemplateURL: <S3 URL for the template>
+7.	  NestedStackY:
+8.	    Type: 'AWS::CloudFormation::Stack'
+9.	    Properties:
+10.	      TemplateURL: <S3 URL for the template>
+11.	      Parameters:
+12.	        SharedValueParameter: 
+13.	          Fn::GetAtt: 
+14.	          - NestedStackX
+15.	          - Outputs.SharedValueOutput
+
+----------------------------------------------------------------------------------------
+Question 24:
+a.	
+1.	Resources:
+2.	  MySampleBucket:
+3.	    Type: AWS::S3::Bucket
+4.	  MyNotificationTopic:
+5.	    Type: AWS::SNS::Topic
+6.	  TopicPolicy:
+7.	    Type: AWS::SNS::TopicPolicy
+
+b.	
+1.	Resources:
+2.	  MySampleBucket:
+3.	    Type: AWS::S3::Bucket
+4.	    Properties:
+5.	      NotificationConfiguration:
+6.	        TopicConfigurations:
+7.	          - Event: s3:ObjectCreated:*
+8.	            Topic: !Ref MyNotificationTopic
+9.	  MyNotificationTopic:
+10.	    Type: AWS::SNS::Topic
+
+c.	
+1.	Resources:
+2.	  MyNotificationTopic:
+3.	    Type: AWS::SNS::Topic
+4.	  MySampleBucket:
+5.	    Type: AWS::S3::Bucket
+6.	    Properties:
+7.	      BucketName: !Ref BucketName
+
+d.	
+1.	Resources:
+2.	  MySampleBucket:
+3.	    Type: AWS::S3::Bucket
+4.	    Properties:
+5.	      BucketName: !Ref BucketName
+6.	      NotificationConfiguration:
+7.	        TopicConfigurations:
+8.	          - Event: s3:ObjectCreated:*
+9.	            Topic: !Ref MyNotificationTopic
+10.	  MyNotificationTopic:
+11.	    Type: AWS::SNS::Topic
+----------------------------------------------------------------------------------------
+Question 34:
+a.	
+1.	export ECR_REGISTRY_ID=$(aws ecr describe-registry --query 'registryId' --output text)
+2.	aws ecr put-replication-configuration --replication-configuration file://my_replication_config.json --region us-east-1
+		
+b.	
+1.	aws ecr get-login --region us-east-1
+2.	aws ecr start-image-replication --region us-west-2
+
+c.	
+1.	export ECR_REGISTRY_ID=$(aws ecr get-registry-id)
+2.	aws ecr set-replication-configuration --file my_replication_config.json
+
+d.	
+1.	aws ecr describe-repositories
+2.	aws ecr replicate-image --destination-region us-west-2
+
+----------------------------------------------------------------------------------------
+Question 35:
+a.	
+1.	kubectl create deployment nginx --image=nginx:1.18.0 --replicas=2 --port=80
+	
+b.	
+1.	kubectl run nginx --image=nginx:1.18.0 --replicas=2 --expose --port=80
+
+c.	
+1.	kubectl deploy nginx --image=nginx:1.18.0 --replicas=2 --port=80
+
+d.	
+1.	kubectl create deployment nginx --image=nginx:1.18.0 --replicas=2 --expose --port=80
+
+----------------------------------------------------------------------------------------

@@ -1,0 +1,17 @@
+{
+    "name": "MyLinuxImagePipeline",
+    "description": "Builds Linux Image",
+    "imageRecipeArn": "arn:aws:imagebuilder:us-east-1:111111111111:image-recipe/mytestrecipe/1.0.0",
+    "infrastructureConfigurationArn": "arn:aws:imagebuilder:us-east-1:111111111111:infrastructure-configuration/apachewebserverinfraconfig",
+    "distributionConfigurationArn": "arn:aws:imagebuilder:us-east-1:111111111111:distribution-configuration/myexampledistribution",
+    "imageTestsConfiguration": {
+        "imageTestsEnabled": true,
+        "timeoutMinutes": 60
+    },
+    "schedule": {
+        "scheduleExpression": "cron(0 0 ? * SUN *)",
+        "pipelineExecutionStartCondition": "EXPRESSION_MATCH_AND_DEPENDENCY_UPDATES_AVAILABLE"
+    },
+    "status": "ENABLED"
+}
+

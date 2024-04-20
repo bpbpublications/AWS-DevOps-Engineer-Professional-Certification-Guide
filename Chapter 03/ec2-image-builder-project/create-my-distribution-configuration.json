@@ -1,0 +1,14 @@
+{
+    "name": "MyExampleDistribution",
+    "description": "Copies AMI to us-east-1",
+    "distributions": [
+        {
+            "region": "us-east-1",
+            "amiDistributionConfiguration": {
+                "name": "Name {{imagebuilder:buildDate}}",
+                "description": "An example image name with parameter references",
+                "targetAccountIds": ["111111111111"]
+            }
+        }
+    ]
+}

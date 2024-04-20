@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template with Circular Dependency
+
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref MyImageId
+      InstanceType: t2.micro
+      SubnetId: !Ref 'MySubnetID'
+      SecurityGroupIds:
+        - !Ref 'MyInstanceSG'
+      KeyName: !Ref 'MyKeyPairName'
+
+  MyInstanceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My Security Group
+      VpcId: !Ref 'MyVPCID'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref 'MyEC2Instance' # Circular dependency
+
+Parameters:
+  MyImageId:
+    Type: String
+    Description: The Image ID for the EC2 instance
+  MySubnetID:
+    Type: String
+    Description: The Subnet ID for the EC2 instance
+  MyVPCID:
+    Type: String
+    Description: The VPC ID for the Security Group
+  MyKeyPairName:
+    Type: String
+    Description: The Key Pair Name for the EC2 instance

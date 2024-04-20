@@ -1,0 +1,27 @@
+
+    "cluster": "blue-green-ecs-cluster",
+    "serviceName": "bluegreen-fargate-service",
+    "taskDefinition": "bluegreen-fargate-taskdef:1",
+    "loadBalancers": [
+        {
+            "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:111111111111:targetgroup/bluegreen-target-1/106f61779f6cc65f",
+            "containerName": "blue-app",
+            "containerPort": 80
+        }
+    ],
+    "launchType": "FARGATE",
+    "schedulingStrategy": "REPLICA",
+    "deploymentController": {
+        "type": "CODE_DEPLOY"
+    },
+    "platformVersion": "LATEST",
+    "networkConfiguration": {
+       "awsvpcConfiguration": {
+          "assignPublicIp": "ENABLED",
+          "securityGroups": [ "sg-09b281e3c5d723e93" ],
+          "subnets": [ "subnet-ae83e7f2", "subnet-600ba45e" ]
+       }
+    },
+    "desiredCount": 2
+}
+~

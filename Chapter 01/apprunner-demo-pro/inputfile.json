@@ -1,0 +1,20 @@
+{
+    "ServiceName": "my-nodejs-webapp-service",
+    "SourceConfiguration": {
+        "AuthenticationConfiguration": {
+            "AccessRoleArn": "arn:aws:iam::[AWS_ACCOUNT_ID]:role/AppRunnerECRAccessRole"
+        },
+        "AutoDeploymentsEnabled": true,
+        "ImageRepository": {
+            "ImageIdentifier": "[AWS_ACCOUNT_ID].dkr.ecr.us-east-1.amazonaws.com/nodejs-repo:latest",
+            "ImageConfiguration": {
+                "Port": "8080"
+            },
+            "ImageRepositoryType": "ECR"
+        }
+    },
+    "InstanceConfiguration": {
+        "Cpu": "1 vCPU",
+        "Memory": "2 GB"
+    }
+}

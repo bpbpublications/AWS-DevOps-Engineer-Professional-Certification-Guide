@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Cloudfront Static S3 Website Distribution Stack
+
+Parameters:
+  s3BucketResource:
+    Description: Website Content Bucket
+    Type: String
+  s3BucketResourceArn:
+    Description: Arn of S3 Bucket
+    Type: String
+  s3BucketDomainName:
+    Description: Domain name of S3 Bucket
+    Type: String
+Resources:
+  S3WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref 's3BucketResource'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource: !Sub '${s3BucketResourceArn}/*'
+            Principal:
+              CanonicalUser: !GetAtt WebsiteCloudFrontOriginAccessIdentity.S3CanonicalUserId
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        DefaultCacheBehavior:
+          Compress: true
+          DefaultTTL: 86400
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: !Sub 'S3-${AWS::StackName}'
+          ViewerProtocolPolicy: 'redirect-to-https'
+        CustomErrorResponses:
+          - ErrorCachingMinTTL: 60
+            ErrorCode: 404
+            ResponseCode: 404
+            ResponsePagePath: '/error.html'
+        Enabled: true
+        HttpVersion: 'http2'
+        DefaultRootObject: 'index.html'
+        IPV6Enabled: true
+        Origins:
+          - DomainName: !Ref 's3BucketDomainName'
+            Id: !Sub 'S3-${AWS::StackName}'
+            S3OriginConfig:
+              OriginAccessIdentity:
+                !Join ['', ['origin-access-identity/cloudfront/', !Ref WebsiteCloudFrontOriginAccessIdentity]]
+        PriceClass: 'PriceClass_All'
+  WebsiteCloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: 'CloudFront OAI S3 Website'
+Outputs:
+  CloudFrontDistribution:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt CloudFrontDistribution.DomainName

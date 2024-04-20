@@ -1,0 +1,95 @@
+{
+  "pipeline": {
+    "name": "S3BucketDeploymentPipeline",
+    "roleArn": "arn:aws:iam::[DEV_ACCOUNT_ID]:role/service-role/AWSCodePipelineServiceRole-us-east-1-s3website-codepipeline",
+    "artifactStore": {
+      "type": "S3",
+      "location": "codepipeline-source-artifact-bucket",
+	  "encryptionKey": {
+                "id": "arn:aws:kms:us-east-1:[DEV_ACCOUNT_ID]:key/[KMS_KEY_ID]",
+                "type": "KMS"
+            }
+    },
+    "stages": [
+      {
+        "name": "Source",
+        "actions": [
+          {
+            "name": "S3Source",
+            "actionTypeId": {
+              "category": "Source",
+              "owner": "AWS",
+              "provider": "S3",
+              "version": "1"
+            },
+            "runOrder": 1,
+            "configuration": {
+              "S3Bucket": "dev-account-source-code-bucket",
+              "S3ObjectKey": "s3_bucket_deployment_template.zip"
+            },
+            "outputArtifacts": [
+              {
+                "name": "SourceArtifact"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "deploy-dev",
+        "actions": [
+          {
+            "name": "CloudFormationDeploy",
+            "actionTypeId": {
+              "category": "Deploy",
+              "owner": "AWS",
+              "provider": "CloudFormation",
+              "version": "1"
+            },
+            "runOrder": 1,
+            "configuration": {
+              "ActionMode": "CREATE_UPDATE",
+              "RoleArn": "arn:aws:iam::[DEV_ACCOUNT_ID]:role/S3BucketDeploymentCFNRole",
+              "StackName": "S3BucketDeploymentDevStack",
+              "TemplatePath": "SourceArtifact::s3_bucket_deployment_template.yml"
+            },
+            "inputArtifacts": [
+              {
+                "name": "SourceArtifact"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "deploy-test",
+        "actions": [
+          {
+            "name": "CloudFormationDeploy",
+            "actionTypeId": {
+              "category": "Deploy",
+              "owner": "AWS",
+              "provider": "CloudFormation",
+              "version": "1"
+            },
+            "runOrder": 1,
+	    "roleArn": "arn:aws:iam::[TEST_ACCOUNT_ID]:role/CrossAccountCodePipelineRole",
+	    "region": "us-east-1",
+	    "namespace": "DeployVariables",
+            "configuration": {
+              "ActionMode": "CREATE_UPDATE",
+              "RoleArn": "arn:aws:iam::[TEST_ACCOUNT_ID]:role/S3BucketDeploymentCFNRole",
+              "StackName": "S3BucketDeploymentTestStack",
+              "TemplatePath": "SourceArtifact::s3_bucket_deployment_template.yml"
+            },
+            "inputArtifacts": [
+              {
+                "name": "SourceArtifact"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
